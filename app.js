@@ -101,8 +101,13 @@ function resultNarrative(plan) {
   };
 }
 
-function showPlan(plan) {
-  const narrative = resultNarrative(plan);
+function showPlan(plan, aiNarrative = null) {
+  plan = {
+    ...plan,
+    riskLevel: plan.riskLevel || plan.risk,
+    grossRawKg: plan.grossRawKg ?? plan.rawRequired,
+  };
+  const narrative = aiNarrative || resultNarrative(plan);
   $("#riskBadge").textContent = plan.riskLevel + " planning status";
   $("#riskBadge").className = "status-chip status-" + (plan.riskLevel === "BALANCED" ? "ok" : plan.riskLevel === "WATCH" ? "watch" : "critical");
   $("#resultHeadline").textContent = narrative.headline;
@@ -116,8 +121,35 @@ function showPlan(plan) {
   $("#resultPanel").hidden = false;
 }
 
+async function getAiPlan(plan) {
+  const response = await fetch("/api/plan", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(plan),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(payload.error || "The cloud planner is temporarily unavailable.");
+    error.status = response.status;
+    throw error;
+  }
+  return payload;
+}
+
+async function loadCloudStats() {
+  try {
+    const response = await fetch("/api/stats", { headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error();
+    const data = await response.json();
+    const risk = data.byRisk || {};
+    $("#cloudProof").textContent = `${fmt(data.totalRequests)} AI plans logged in Supabase · ${fmt((risk.CRITICAL || 0) + (risk.HIGH || 0))} high/critical plans`;
+  } catch {
+    $("#cloudProof").textContent = "Live Supabase usage is temporarily unavailable.";
+  }
+}
+
 $("#sku").addEventListener("change", (event) => loadProduct(Number(event.target.value)));
-$("#planForm").addEventListener("submit", (event) => {
+$("#planForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   $("#formError").hidden = true;
   const keys = ["finishedStock","confirmedDemand","forecastDemand","safetyStock","dailyCapacity","horizonDays","blankKg","yieldPct"];
@@ -127,8 +159,39 @@ $("#planForm").addEventListener("submit", (event) => {
     $("#formError").hidden = false;
     return;
   }
-  lastPlan = calculatePlan(values, products[Number($("#sku").value)]);
-  showPlan(lastPlan);
+  const submit = event.submitter;
+  submit.disabled = true;
+  submit.textContent = "Generating verified plan…";
+  $("#aiMode").textContent = "Calling Gemini";
+  try {
+    const product = products[Number($("#sku").value)];
+    const verifiedInput = {
+      sku: product.sku,
+      material: product.material,
+      horizon: values.horizonDays,
+      confirmed: values.confirmedDemand,
+      forecast: values.forecastDemand,
+      safetyStock: values.safetyStock,
+      availableFg: values.finishedStock,
+      blankKg: values.blankKg,
+      yieldPct: values.yieldPct,
+      dailyCapacity: values.dailyCapacity,
+      rawAvailable: materialAvailable(product.material),
+    };
+    const cloud = await getAiPlan(verifiedInput);
+    lastPlan = cloud.plan;
+    $("#aiMode").textContent = "Gemini + Supabase";
+    showPlan(lastPlan, cloud.narrative);
+    $("#cloudProof").textContent = `${cloud.remaining} AI plan${cloud.remaining === 1 ? "" : "s"} remaining today for this network`;
+    await loadCloudStats();
+  } catch (error) {
+    $("#aiMode").textContent = error.status === 429 ? "Daily limit reached" : "Cloud unavailable";
+    $("#formError").textContent = error.message;
+    $("#formError").hidden = false;
+  } finally {
+    submit.disabled = false;
+    submit.textContent = "Generate AI-assisted plan";
+  }
 });
 
 $("#editPlan").addEventListener("click", () => { $("#resultPanel").hidden = true; $("#planForm").hidden = false; });
@@ -145,3 +208,4 @@ $("#downloadPlan").addEventListener("click", () => {
 
 renderDashboard();
 populateSkuOptions();
+loadCloudStats();

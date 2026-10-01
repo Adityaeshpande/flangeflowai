@@ -135,7 +135,7 @@ function renderKpis() {
     ["Quality hold",fmt(quarantine)+" kg","Quarantined material","alert"],
     ["Reorder alerts",reorderAlerts,"Material families below ROP",reorderAlerts?"alert":""],
     ["Open work orders",openWos,"Planned or released production",""],
-    ["AI plans logged",cloudStats.available?fmt(cloudStats.totalRequests):"Local",cloudStats.available?fmt(cloudStats.criticalPlans)+" critical plans in Supabase":"Connect Supabase to activate",""],
+    ["AI plans logged",cloudStats.available?fmt(cloudStats.totalRequests):"Unavailable",cloudStats.available?fmt(cloudStats.criticalPlans)+" critical plans in Supabase":"Live usage could not be read",""],
   ];
   $("#dashboardKpis").innerHTML = cards.map(([label,value,note,cls]) => '<article class="kpi-card '+cls+'"><span>'+label+'</span><strong>'+value+'</strong><small>'+note+'</small></article>').join("");
 }
@@ -423,10 +423,10 @@ function renderPlannerResult(plan,narrative) {
   $("#createWorkOrder")?.addEventListener("click",()=>createWorkOrder(plan));
 }
 async function getAiNarrative(plan) {
-  const visitorKey="flangeflow_visitor";let visitorId=localStorage.getItem(visitorKey);if(!visitorId){visitorId=crypto.randomUUID();localStorage.setItem(visitorKey,visitorId);}
-  const response=await fetch("/api/plan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...plan,visitorId})});
-  if(!response.ok)throw Error("Cloud planner unavailable");
-  return response.json();
+  const response=await fetch("/api/plan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(plan)});
+  const payload=await response.json().catch(()=>({}));
+  if(!response.ok){const error=Error(payload.error||"Cloud planner unavailable");error.status=response.status;throw error;}
+  return payload;
 }
 async function loadCloudStats() {
   try {
@@ -501,7 +501,7 @@ $("#dialogSubmit").addEventListener("click",()=>{try{const form=$("#actionForm")
 document.addEventListener("click",(e)=>{const action=e.target.closest("[data-action]");if(action)performAction(action.dataset.action,action.dataset.id);const jump=e.target.closest("[data-jump]");if(jump)setView(jump.dataset.jump);});
 $$(".nav-item").forEach((b)=>b.addEventListener("click",()=>setView(b.dataset.viewTarget)));
 $$("[data-inventory-tab]").forEach((b)=>b.addEventListener("click",()=>{inventoryTab=b.dataset.inventoryTab;$$("[data-inventory-tab]").forEach((x)=>x.classList.toggle("active",x===b));$$("[data-inventory-panel]").forEach((p)=>p.classList.toggle("active",p.dataset.inventoryPanel===inventoryTab));}));
-$("#plannerForm").addEventListener("submit",async(e)=>{e.preventDefault();const plan=calculatePlan($("#plannerSku").value,Number($("#plannerHorizon").value),Number($("#plannerForecast").value));lastPlan=plan;renderPlannerResult(plan);$("#aiMode").textContent="Local calculation";try{const cloud=await getAiNarrative(plan);$("#aiMode").textContent="Gemini + Supabase";renderPlannerResult(cloud.plan||plan,cloud.narrative);await loadCloudStats();}catch{}});
+$("#plannerForm").addEventListener("submit",async(e)=>{e.preventDefault();const plan=calculatePlan($("#plannerSku").value,Number($("#plannerHorizon").value),Number($("#plannerForecast").value));lastPlan=plan;renderPlannerResult(plan);$("#aiMode").textContent="Calling Gemini";try{const cloud=await getAiNarrative(plan);$("#aiMode").textContent="Gemini + Supabase";renderPlannerResult(cloud.plan||plan,cloud.narrative);toast(cloud.remaining+" AI plans remaining today for this network.");await loadCloudStats();}catch(error){$("#aiMode").textContent=error.status===429?"Daily limit reached":"Verified local result";toast(error.message+" The verified local calculation remains visible.");}});
 $("#downloadTemplate").addEventListener("click",()=>downloadCsv("flangeflow-opening-balance-template.csv",[["record_type","code","lot_id","heat_number","quantity","bin","quality_status","supplier","received_date"],["RAW","A105","LOT-EXAMPLE","HEAT-EXAMPLE",500,"QC-HOLD-01","QUARANTINE","Supplier name",todayIso()],["FG","FF-B16.5-2-150-WN-A105","","",25,"FG-A-01","ACCEPTED","",todayIso()]]));
 $("#importInventory").addEventListener("click",()=>$("#inventoryFile").click());$("#inventoryFile").addEventListener("change",async(e)=>{try{if(e.target.files[0])await importInventory(e.target.files[0]);}catch(error){toast(error.message);}e.target.value="";});
 $("#exportInventory").addEventListener("click",exportInventory);
