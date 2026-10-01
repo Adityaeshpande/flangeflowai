@@ -51,19 +51,15 @@ export default async function handler(req, res) {
         generationConfig: {
           temperature: 0.2,
           maxOutputTokens: 350,
-          responseFormat: {
-            text: {
-              mimeType: "application/json",
-              schema: {
-                type: "object",
-                properties: {
-                  headline: { type: "string" },
-                  summary: { type: "string" },
-                  actions: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 4 },
-                },
-                required: ["headline", "summary", "actions"],
-              },
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "object",
+            properties: {
+              headline: { type: "string" },
+              summary: { type: "string" },
+              actions: { type: "array", items: { type: "string" } },
             },
+            required: ["headline", "summary", "actions"],
           },
         },
       }),
