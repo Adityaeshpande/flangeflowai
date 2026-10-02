@@ -1,6 +1,6 @@
 # FlangeFlow AI
 
-FlangeFlow AI is an assignment-ready, hypothetical operations product for a small flange manufacturer. It balances confirmed orders, forecast demand, finished goods, safety stock, released raw-material lots, process yield and daily capacity.
+FlangeFlow is an assignment-ready, hypothetical traceable-stock product for a small flange manufacturer. Phase 1 records heat numbers and MTCs from receipt and quarantine through human quality release, work-order issue, outside processing, finished goods and dispatch. A clearly labelled Phase 2 pilot explains server-verified production-planning calculations.
 
 ## What works locally
 
@@ -8,7 +8,8 @@ FlangeFlow AI is an assignment-ready, hypothetical operations product for a smal
 - Lot, heat, MTC, bin and quality-status tracking
 - Receipt, quality release/reject, issue, completion, dispatch and adjustment workflows
 - Finished-goods and raw-material reservations
-- Production plans and work orders
+- Phase 1 work-order and traceability records
+- Optional Phase 2 production-planning pilot
 - Supplier qualification register using official industry directories as leads
 - CSV import/export, barcode/QR input and audit history
 - Plain-language guide for abbreviations, standards and responsibilities
@@ -32,7 +33,7 @@ Serve the folder with any static web server and open `operations.html`. Run `npm
 2. Add `GEMINI_API_KEY`, `GEMINI_MODEL`, `SUPABASE_URL` and `SUPABASE_SECRET_KEY` as server-side environment variables.
 3. Deploy and test the production URL.
 
-The `/api/plan` function validates and recalculates every plan, caps Gemini output at 350 tokens, limits each visitor to five requests per UTC day, applies safety guardrails and logs every successful request/response to Supabase. `/api/stats` reads the table back and displays the total logged plans on the dashboard.
+The optional Phase 2 `/api/plan` function validates and recalculates every plan, caps Gemini output at 350 tokens, limits each network-and-browser fingerprint to five requests per UTC day, applies safety guardrails and logs every successful request/response to Supabase. `/api/stats` reads the table back and displays the total logged plans on the landing page and Operations dashboard.
 
 ## Data ownership
 
