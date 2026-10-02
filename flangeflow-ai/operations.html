@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="FlangeFlow operational inventory and production-control demo.">
+  <title>FlangeFlow Operations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="operations.css">
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <a class="ops-brand" href="index.html"><span class="brand-ring"></span><span>FlangeFlow <b>AI</b></span></a>
+      <div class="company-block"><small>Demo company</small><strong>Meridian Flange Works</strong><span>Illustrative data only</span></div>
+      <nav class="side-nav" aria-label="Operations navigation">
+        <button class="nav-item active" data-view-target="dashboard"><span>01</span>Dashboard</button>
+        <button class="nav-item" data-view-target="inventory"><span>02</span>Inventory</button>
+        <button class="nav-item" data-view-target="transactions"><span>03</span>Transactions</button>
+        <button class="nav-item" data-view-target="production"><span>04</span>Production</button>
+        <button class="nav-item" data-view-target="orders"><span>05</span>Orders</button>
+        <button class="nav-item" data-view-target="suppliers"><span>06</span>Suppliers</button>
+        <button class="nav-item" data-view-target="audit"><span>07</span>Audit trail</button>
+      </nav>
+      <div class="role-block">
+        <label for="roleSelect">Demo role</label>
+        <select id="roleSelect"></select>
+        <small id="roleHelp"></small>
+      </div>
+      <div class="sidebar-links"><a href="guide.html">Plain-language guide</a><a href="index.html">Product website</a></div>
+    </aside>
+
+    <main class="workspace">
+      <header class="workspace-header">
+        <div><p id="viewEyebrow">Operations overview</p><h1 id="viewTitle">Inventory control dashboard</h1></div>
+        <div class="header-actions">
+          <label class="scan-field"><span>Scan or enter code</span><input id="globalSearch" placeholder="Lot, heat, SKU or order"></label>
+          <button class="button secondary" id="scanButton" type="button">Scan barcode</button>
+          <button class="button" data-action="receipt" type="button">Receive material</button>
+        </div>
+      </header>
+      <div class="mode-banner"><strong>Live AI pilot + local operations demo</strong><span>Operational transactions stay in this browser. Gemini requests are processed by Vercel and logged to Supabase; no API key is sent to the browser.</span><button id="dismissBanner">Dismiss</button></div>
+
+      <section class="view active" data-view="dashboard">
+        <div class="kpi-grid" id="dashboardKpis"></div>
+        <div class="dashboard-grid">
+          <article class="panel alerts-panel"><div class="panel-head"><div><p>Exceptions</p><h2>Action queue</h2></div><span id="alertCount" class="counter"></span></div><div id="alertList" class="alert-list"></div></article>
+          <article class="panel"><div class="panel-head"><div><p>Materials</p><h2>Available vs reorder point</h2></div></div><div id="materialBars" class="material-bars"></div></article>
+        </div>
+        <article class="panel"><div class="panel-head"><div><p>Customer commitments</p><h2>Order fulfilment risk</h2></div><button class="text-button" data-jump="orders">View all orders</button></div><div class="table-scroll"><table><thead><tr><th>Order</th><th>SKU</th><th>Due</th><th>Open qty</th><th>Available FG</th><th>Status</th></tr></thead><tbody id="dashboardOrderRows"></tbody></table></div></article>
+      </section>
+
+      <section class="view" data-view="inventory">
+        <div class="view-toolbar">
+          <div class="segmented"><button class="active" data-inventory-tab="raw">Raw-material lots</button><button data-inventory-tab="finished">Finished goods</button></div>
+          <div><button class="button secondary" id="downloadTemplate" type="button">CSV template</button><button class="button secondary" id="importInventory" type="button">Import CSV</button><button class="button" id="exportInventory" type="button">Export inventory</button></div>
+        </div>
+        <input id="inventoryFile" type="file" accept=".csv,text/csv" hidden>
+        <article class="panel inventory-panel active" data-inventory-panel="raw"><div class="panel-head"><div><p>Traceable stock</p><h2>Raw-material lots</h2></div><button class="button" data-action="receipt">New receipt</button></div><div class="table-scroll"><table><thead><tr><th>Lot</th><th>Material</th><th>Heat</th><th>Supplier</th><th>On hand</th><th>Reserved</th><th>Available</th><th>Bin</th><th>Quality</th><th>Action</th></tr></thead><tbody id="rawLotRows"></tbody></table></div></article>
+        <article class="panel inventory-panel" data-inventory-panel="finished"><div class="panel-head"><div><p>Accepted inventory</p><h2>Finished goods</h2></div><button class="button secondary" data-action="adjust-fg">Cycle-count adjustment</button></div><div class="table-scroll"><table><thead><tr><th>SKU</th><th>Description</th><th>Material</th><th>On hand</th><th>Reserved</th><th>Available</th><th>Safety stock</th><th>Bin</th><th>Status</th></tr></thead><tbody id="finishedRows"></tbody></table></div></article>
+      </section>
+
+      <section class="view" data-view="transactions">
+        <div class="quick-actions">
+          <button data-action="receipt"><span>01</span><strong>Receive material</strong><small>Add a quarantined raw-material lot</small></button>
+          <button data-action="quality"><span>02</span><strong>Quality decision</strong><small>Release or reject a received lot</small></button>
+          <button data-action="issue"><span>03</span><strong>Issue to production</strong><small>Move released material into WIP</small></button>
+          <button data-action="completion"><span>04</span><strong>Record production</strong><small>Add accepted finished goods and scrap</small></button>
+          <button data-action="dispatch"><span>05</span><strong>Dispatch order</strong><small>Deduct finished goods against an order</small></button>
+          <button data-action="adjust-raw"><span>06</span><strong>Stock adjustment</strong><small>Manager-approved cycle-count correction</small></button>
+        </div>
+        <article class="panel"><div class="panel-head"><div><p>Movement ledger</p><h2>Inventory transactions</h2></div><button class="button secondary" id="exportTransactions">Export CSV</button></div><div class="table-scroll"><table><thead><tr><th>Time</th><th>Type</th><th>Reference</th><th>Item</th><th>Quantity</th><th>User role</th><th>Note</th></tr></thead><tbody id="transactionRows"></tbody></table></div></article>
+      </section>
+
+      <section class="view" data-view="production">
+        <div class="production-grid">
+          <article class="panel planner-panel"><div class="panel-head"><div><p>Materials + capacity</p><h2>Production planner</h2></div><span class="mode-chip" id="aiMode">Local calculation</span></div>
+            <form id="plannerForm" class="compact-form">
+              <label>SKU<select id="plannerSku"></select></label>
+              <label>Planning horizon<input id="plannerHorizon" type="number" min="1" max="90" value="14"><small>days</small></label>
+              <label>Additional forecast<input id="plannerForecast" type="number" min="0" value="0"><small>units</small></label>
+              <button class="button" type="submit">Calculate plan</button>
+            </form>
+            <div id="plannerResult" class="planner-result empty"><p>Select a SKU and calculate a traceable production recommendation.</p></div>
+          </article>
+          <article class="panel"><div class="panel-head"><div><p>Capacity control</p><h2>Open work orders</h2></div></div><div class="table-scroll"><table><thead><tr><th>Work order</th><th>SKU</th><th>Planned</th><th>Produced</th><th>Raw issued</th><th>Due</th><th>Status</th></tr></thead><tbody id="workOrderRows"></tbody></table></div></article>
+        </div>
+      </section>
+
+      <section class="view" data-view="orders">
+        <div class="view-toolbar"><p>Confirmed orders drive production priority. Forecast demand remains separate.</p><button class="button" data-action="new-order">New sales order</button></div>
+        <article class="panel"><div class="panel-head"><div><p>Demand register</p><h2>Customer orders</h2></div></div><div class="table-scroll"><table><thead><tr><th>Order</th><th>Customer</th><th>SKU</th><th>Ordered</th><th>Dispatched</th><th>Open</th><th>Due date</th><th>Status</th><th>Action</th></tr></thead><tbody id="orderRows"></tbody></table></div></article>
+      </section>
+
+      <section class="view" data-view="suppliers">
+        <div class="supplier-note"><div><p>Responsible sourcing</p><h2>Directory leads are not approved suppliers</h2></div><p>Verify grade, product form, certificate scope, heat traceability, testing, capacity and commercial terms before approval.</p><a href="guide.html#vendors">Read supplier guide</a></div>
+        <div class="source-links"><a href="https://indianforging.org/members-directory/" target="_blank" rel="noreferrer"><strong>AIFI member directory</strong><span>Candidate forging suppliers ↗</span></a><a href="https://www.stainlessindia.org/associatemembers.cfm?CHR=S" target="_blank" rel="noreferrer"><strong>ISSDA member directory</strong><span>Candidate stainless suppliers ↗</span></a></div>
+        <article class="panel"><div class="panel-head"><div><p>Qualification register</p><h2>Supplier candidates</h2></div><button class="button" data-action="new-supplier">Add supplier</button></div><div class="table-scroll"><table><thead><tr><th>Supplier</th><th>Region</th><th>Material capability</th><th>Lead time</th><th>MOQ</th><th>QMS</th><th>MTC</th><th>Status</th><th>Contact</th></tr></thead><tbody id="supplierRows"></tbody></table></div></article>
+      </section>
+
+      <section class="view" data-view="audit">
+        <div class="view-toolbar"><p>Every data-changing action records the time, role, action and reference.</p><div><button class="button secondary" id="exportAudit">Export audit</button><button class="button danger" id="resetDemo">Reset demo data</button></div></div>
+        <article class="panel"><div class="panel-head"><div><p>Accountability</p><h2>Audit trail</h2></div></div><div class="table-scroll"><table><thead><tr><th>Time</th><th>Role</th><th>Action</th><th>Entity</th><th>Reference</th><th>Details</th></tr></thead><tbody id="auditRows"></tbody></table></div></article>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="actionDialog"><form method="dialog" id="actionForm"><div class="dialog-head"><div><p id="dialogEyebrow"></p><h2 id="dialogTitle"></h2></div><button value="cancel" type="submit" class="close-button" aria-label="Close">×</button></div><div id="dialogFields" class="dialog-fields"></div><p id="dialogError" class="form-error" hidden></p><div class="dialog-actions"><button value="cancel" type="submit" class="button secondary">Cancel</button><button id="dialogSubmit" type="button" class="button">Save transaction</button></div></form></dialog>
+  <dialog id="scanDialog"><div class="dialog-head"><div><p>Device camera</p><h2>Scan barcode or QR code</h2></div><button id="closeScanner" class="close-button">×</button></div><video id="scanVideo" autoplay playsinline></video><p id="scanMessage">Point the camera at a lot, SKU, order or work-order code.</p></dialog>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="operations.js" type="module"></script>
+</body>
+</html>
