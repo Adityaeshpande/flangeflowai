@@ -18,7 +18,7 @@ Operational demo data is saved in the browser. It is illustrative, not a claim o
 
 ## Local review
 
-Serve the folder with any static web server and open `operations.html`. Run `npm test` for the deterministic planning tests. The Gemini endpoint requires Vercel's local runtime or deployment.
+Serve the folder with any static web server and open `operations.html`. Run `npm test` for the deterministic planning tests and the Gemini retry tests. The Gemini endpoint requires Vercel's local runtime or deployment.
 
 ## Supabase setup
 
@@ -33,7 +33,7 @@ Serve the folder with any static web server and open `operations.html`. Run `npm
 2. Add `GEMINI_API_KEY`, `GEMINI_MODEL`, `SUPABASE_URL` and `SUPABASE_SECRET_KEY` as server-side environment variables.
 3. Deploy and test the production URL.
 
-The optional Phase 2 `/api/plan` function validates and recalculates every plan, caps Gemini output at 350 tokens, limits each network-and-browser fingerprint to five requests per UTC day, applies safety guardrails and logs every successful request/response to Supabase. `/api/stats` reads the table back and displays the total logged plans on the landing page and Operations dashboard.
+The optional Phase 2 `/api/plan` function validates and recalculates every plan, retries transient Gemini failures (429/5xx, timeouts) up to three times with exponential backoff inside a 25-second budget, caps Gemini output at 350 tokens, limits each network-and-browser fingerprint to five requests per UTC day, applies safety guardrails and logs every successful request/response to Supabase. `/api/stats` reads the table back and displays the total logged plans on the landing page and Operations dashboard.
 
 ## Data ownership
 
